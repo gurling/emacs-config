@@ -8,55 +8,35 @@ My personal Emacs config
 
 * TABLE OF CONTENTS :toc:
 - [[#important-programs-to-load-first][Important Programs to load first]]
-  - [[#package-manager][Package Manager]]
   - [[#evil-mode][Evil Mode]]
   - [[#general-keybindings][General Keybindings]]
+  - [[#vterm-terminal-emulator][Vterm (terminal emulator)]]
 - [[#fonts][Fonts]]
 - [[#which-key][which-key]]
 - [[#gui-tweaks][GUI Tweaks]]
   - [[#disable-menubar-toolbar-scrollbar-and-splash-screen][Disable Menubar, Toolbar, Scrollbar and Splash screen]]
   - [[#display-line-numbers-and-truncated-lines][Display Line Numbers and Truncated Lines]]
-  - [[#pdfs][PDFs]]
   - [[#doom-modeline][Doom Modeline]]
+  - [[#beacon-mode][Beacon mode]]
 - [[#org-mode][Org Mode]]
+  - [[#org-agenda][Org Agenda]]
   - [[#table-of-contents][Table Of Contents]]
   - [[#org-bullets][Org Bullets]]
   - [[#disable-electric-indent-mode][Disable Electric Indent mode]]
   - [[#inline-images][Inline Images]]
-- [[#catppuccin-theme][Catppuccin theme]]
+  - [[#math-settings--org-fragtog-mode][Math Settings + org-fragtog-mode]]
+  - [[#google-calendar-org-agenda-integration][Google calendar org-agenda integration]]
+- [[#themes][Themes]]
+  - [[#catppuccin-theme][Catppuccin theme]]
+  - [[#canagawa-theme][Canagawa theme]]
+  - [[#timu-spacegrey-theme][timu-spacegrey-theme]]
+  - [[#zenburn-theme][Zenburn theme]]
+- [[#loading-a-theme][Loading a theme]]
 - [[#latex-classes][LaTeX classes]]
+  - [[#seminar-work][Seminar Work]]
+  - [[#math-notes][Math Notes]]
 
 * Important Programs to load first
-
-** Package Manager
-
-Bootstrap the package manager (straight.el)
-
-#+BEGIN_SRC emacs-lisp
-(add-to-list 'exec-path "C:/Git/bin")
-(setq magit-git-executable "C:/Git/bin/git.exe")         
-    (defvar bootstrap-version)
-    (let ((bootstrap-file
-           (expand-file-name
-            "straight/repos/straight.el/bootstrap.el"
-            (or (bound-and-true-p straight-base-dir)
-                user-emacs-directory)))
-          (bootstrap-version 7))
-      (unless (file-exists-p bootstrap-file)
-        (with-current-buffer
-            (url-retrieve-synchronously
-             "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
-             'silent 'inhibit-cookies)
-          (goto-char (point-max))
-          (eval-print-last-sexp)))
-      (load bootstrap-file nil 'nomessage))
-
-  (straight-use-package 'use-package)
-  (setq straigt-use-package-by-default t)
-  (use-package el-patch
-  :straight t)
-#+END_SRC
-
 ** Evil Mode
 
 Install and configure Evil Mode (Vim emulation for Emacs)
@@ -68,7 +48,8 @@ Install and configure Evil Mode (Vim emulation for Emacs)
     (setq evil-want-integration t)
     (setq evil-want-keybinding nil)
     (setq evil-vsplit-window-right t)
-    (setq evil-split-window-below t))
+    (setq evil-split-window-below t)
+    (setq evil-undo-system 'undo-redo))
 
     (use-package evil-collection
       :straight t
@@ -87,70 +68,133 @@ Install and configure Evil Mode (Vim emulation for Emacs)
 ** General Keybindings
 
 #+BEGIN_SRC emacs-lisp
-  (use-package general
-    :straight t
-    :config
-  (general-evil-setup)
+  ;; Free SPC in Evil states where you want it to be a leader
+  (with-eval-after-load 'evil
+    (define-key evil-emacs-state-map  (kbd "SPC") nil)
+    (define-key evil-motion-state-map (kbd "SPC") nil)
+    (define-key evil-normal-state-map (kbd "SPC") nil)
+    (define-key evil-visual-state-map (kbd "SPC") nil))
 
-  ;; st up 'SPC' (Space) as the global leader key
-  (general-create-definer emily/leader-keys
-  :states '(normal insert visual emacs)
-  :keymaps 'override
-  :prefix "SPC" ;; set leader
-  :global-prefix "M-SPC") ;; access leader in insert mode
+    (use-package general
+      :straight t
+      :config
+    (general-evil-setup t)
 
-  (emily/leader-keys
-   "b" '(:ignore t :wk "buffer")
-   "b b" '(switch-to-buffer :wk "Switch buffer")
-   "b i" '(ibuffer :wk "Switch buffer")
-   "b k" '(kill-this-buffer :wk "Kill this buffer")
-   "b n" '(next-buffer :wk "Next buffer")
-   "b p" '(previous-buffer :wk "Previous buffer")
-   "b r" '(revert-buffer :wk "Reload buffer"))
+    ;; st up 'SPC' (Space) as the global leader key
+    (general-create-definer emily/leader-keys
+    :states '(normal insert visual motion emacs)
+    :keymaps 'override
+    :prefix "SPC" ;; set leader
+    :global-prefix "M-SPC") ;; access leader in insert mode
 
-  (emily/leader-keys
-   "f" '(:ignore t :wk "files")
-   "f f" '(find-file :wk "find file")
-   "f c" '((lambda () (interactive) (find-file "~/.config/emacs/config.org")) :wk "Edit Emacs config"))
+    (general-create-definer emily/keys
+    :states '(normal insert visual emacs)
+    :keymaps 'override))
 
+     (emily/leader-keys
+     "b" '(:ignore t :wk "buffer")
+     "b b" '(switch-to-buffer :wk "Switch buffer")
+     "b i" '(ibuffer :wk "Switch buffer")
+     "b k" '(kill-current-buffer :wk "Kill this buffer")
+     "b n" '(next-buffer :wk "Next buffer")
+     "b p" '(previous-buffer :wk "Previous buffer")
+     "b r" '(revert-buffer :wk "Reload buffer"))
 
-  (emily/leader-keys
-   "h" '(:ignore t :wk "help")
-   "h v" '(describe-variable :wk "describe variable")
-   "h f" '(describe-function :wk "describe function")
-   "h r r" '((lambda () (interactive) (load-file "~/.config/emacs/init.el")) :wk "Reload Emacs config"))
+    (emily/leader-keys
+     "f" '(:ignore t :wk "files")
+     "f f" '(find-file :wk "find file")
+     "f c" '((lambda () (interactive) (find-file "~/.config/emacs/config.org")) :wk "Edit Emacs config"))
 
- (emily/leader-keys ;; misc
-  "g c" '(comment-line :wk "comment line"))
+    (emily/leader-keys
+    "e" '(:ignore t :wk "eval")
+    "e r" '(eval-region :wk "Evaluate Region")
+    "e b" '(eval-buffer :wk "Evaluate Buffer"))
 
-  )
+    (emily/leader-keys
+     "h" '(:ignore t :wk "help")
+     "h v" '(describe-variable :wk "describe variable")
+     "h f" '(describe-function :wk "describe function")
+     "h r r" '((lambda () (interactive) (load-file "~/.config/emacs/init.el")) :wk "Reload Emacs config"))
+
+    (emily/leader-keys
+    "w" '(:ignore t :wk "window")
+    "w h" '(evil-window-left :wk "focus left")
+    "w j" '(evil-window-down :wk "focus down")
+    "w k" '(evil-window-up :wk "focus up")
+    "w l" '(evil-window-right :wk "focus right")
+    "w S-h" '(evil-window-move-far-left :wk "move left")
+    "w S-j" '(evil-window-move-very-bottom :wk "move down")
+    "w S-k" '(evil-window-move-very-top :wk "move up")
+    "w S-l" '(evil-window-move-far-right :wk "move right")
+    "w c" '(evil-quit :wk "close window")
+    "w s" '(evil-window-split :wk "horizontal split")
+    "w v" '(evil-window-vsplit :wk "vertical split"))
+
+   (emily/leader-keys ;; misc
+    "g c" '(comment-set-column :wk "comment line"))
+   
+   (emily/keys ;; zooming
+    "C-+" '(text-scale-increase :wk "Zoom +")
+    "C-=" '(text-scale-increase :wk "Zoom +")
+    "C--" '(text-scale-decrease :wk "Zoom -")
+    "C-_" '(text-scale-decrease :wk "Zoom -"))
+
+  (emily/leader-keys ;; Org
+   "o" '(:ignore t :wk "Org")
+   "o a" '(org-agenda :wk "Org Agenda")
+   ;; "o a" '((lambda () (interactive) (evil-window-split) (org-agenda)) :wk "Org Agenda")
+   "o t" '(org-table-create :wk "Org Table"))
+  
+  (emily/leader-keys ;; Terminal
+   "t" '(:ignore t :wk "Terminal")
+   "t o" '(vterm-toggle :wk "Toggle VTerm"))
+
+#+END_SRC
+
+** Vterm (terminal emulator)
+
+#+BEGIN_SRC emacs-lisp
+(use-package vterm
+    :ensure t
+    :straight t)
+
+(use-package vterm-toggle
+    :ensure t
+    :straight t)
+
 #+END_SRC
 
 * Fonts
 
 #+begin_src emacs-lisp
+(defvar fixed-pitch-font "BlexMono Nerd Font-16"
+  "Monospace font")
+
+(defvar variable-pitch-font "IBM Plex Sans"
+  "Proportional font")
+
     (set-face-attribute 'default nil
-      :font "Jetbrains Mono"
+      :font fixed-pitch-font
       :height 150
       :weight 'medium)
     (set-face-attribute 'variable-pitch nil
-      :font "Ubuntu"
+      :font variable-pitch-font
       :height 150
       :weight 'medium)
     (set-face-attribute 'fixed-pitch nil
-      :font "Jetbrains Mono"
+      :font fixed-pitch-font
       :height 150
       :weight 'medium)
     (set-face-attribute 'default nil
-    :font "JetBrains Mono"
+    :font fixed-pitch-font
     :height 150
     :weight 'medium)
   (set-face-attribute 'variable-pitch nil
-    :font "Ubuntu"
+    :font variable-pitch-font
     :height 160
     :weight 'medium)
   (set-face-attribute 'fixed-pitch nil
-    :font "JetBrains Mono"
+    :font fixed-pitch-font
     :height 150
     :weight 'medium)
   ;; Makes commented text and keywords italics.
@@ -164,10 +208,10 @@ Install and configure Evil Mode (Vim emulation for Emacs)
   ;; This sets the default font on all graphical frames created after restarting Emacs.
   ;; Does the same thing as 'set-face-attribute default' above, but emacsclient fonts
   ;; are not right unless I also add this method of setting the default font.
-  (add-to-list 'default-frame-alist '(font . "JetBrains Mono-15"))
+  (add-to-list 'default-frame-alist `(font . ,fixed-pitch-font))
 
   ;; Uncomment the following line if line spacing needs adjusting.
-  (setq-default line-spacing 0.12)
+  ;; (setq-default line-spacing 0.12)
   
 #+end_src
 
@@ -214,25 +258,6 @@ Install and configure Evil Mode (Vim emulation for Emacs)
 
 #+END_SRC
 
-** PDFs
-
-#+BEGIN_SRC emacs-lisp
-  (use-package pdf-tools
-    :straight t  ;; uses straight's built-in recipe for vedang/pdf-tools
-    :mode ("\\.pdf\\'" . pdf-view-mode)
-    :config
-    ;; Build and install the epdfinfo server:
-    (pdf-tools-install)
-    ;; Optional settings:
-    (setq-default pdf-view-display-size 'fit-page))
-  (add-hook 'pdf-view-mode-hook (lambda () (display-line-numbers-mode -1)))
-(use-package pdf-view-restore
-  :straight t
-  :after pdf-tools
-  :config
-  (add-hook 'pdf-view-mode-hook 'pdf-view-restore-mode))
-#+END_SRC
-
 ** Doom Modeline
 
 #+BEGIN_SRC emacs-lisp
@@ -242,19 +267,40 @@ Install and configure Evil Mode (Vim emulation for Emacs)
   ;; The Nerd Font you want to use in GUI
   ;; "Symbols Nerd Font Mono" is the default and is recommended
   ;; but you can use any other Nerd Font if you want
-  (nerd-icons-font-family "Symbols Nerd Font Mono")
-  )
+  (nerd-icons-font-family "BlexMono Nerd Font"))
   (use-package doom-modeline
     :straight t
     :ensure t
     :init (doom-modeline-mode 1))
 #+END_SRC
 
+** Beacon mode
+
+#+BEGIN_SRC emacs-lisp
+(use-package beacon
+ :straight t)
+
+(beacon-mode 1)
+
+#+END_SRC
+
 * Org Mode
+** Org Agenda
+
+#+BEGIN_SRC emacs-lisp
+(setq org-agenda-files
+      '(
+        "~/Nextcloud/org-gcal/schedule.org"    ;; My main Google Calendar file
+        "~/Nextcloud/org-gcal/school.org"   ;; My school class calendar (whole class)
+        "~/Nextcloud/org-gcal/school-group.org"   ;; My school class calendar (my group)
+       ))
+
+#+END_SRC
 
 ** Table Of Contents
 
 #+BEGIN_SRC emacs-lisp
+(setq org-return-follows-link t)
   (use-package toc-org
     :straight t
     :commands toc-org-enable
@@ -285,26 +331,135 @@ Install and configure Evil Mode (Vim emulation for Emacs)
     ;;(add-hook 'org-mode-hook (lambda () (org-toggle-inline-images 1)))
 #+END_SRC
 
-* Catppuccin theme
+** Math Settings + org-fragtog-mode
+
+#+BEGIN_SRC emacs-lisp
+;; ---------- Org: math previews ----------
+(setq org-highlight-latex-and-related '(latex script entities))
+
+;; Crisp previews (vector). Works great on HiDPI.
+(setq org-preview-latex-default-process 'dvisvgm)
+
+;; Bigger previews (adjust to taste)
+(setq org-format-latex-options
+      (plist-put org-format-latex-options :scale 2))
+
+;; ---------- Org -> PDF (latexmk) ----------
+(setq org-latex-compiler "pdflatex")
+
+(use-package org-fragtog
+ :straight t)
+
+(add-hook 'org-mode-hook 'org-fragtog-mode)
+
+
+#+END_SRC 
+
+** Google calendar org-agenda integration
+
+#+BEGIN_SRC emacs-lisp
+;; 1. Setup Auth-Source-Pass
+(require 'auth-source-pass)
+(auth-source-pass-enable)
+
+;; 2. Define the helper function
+(defun my/get-org-gcal-creds ()
+  (let ((entry (auth-source-pass-parse-entry "org-gcal")))
+    (if entry
+        (list :client-id (alist-get "client-id" entry nil nil #'equal) ;; <--- The Fix: Use 'equal to match strings
+              :client-secret (alist-get 'secret entry))
+      nil)))
+
+;; 3. PRE-SET the variables.
+(let ((creds (my/get-org-gcal-creds)))
+  (if creds
+      (progn
+        (setq org-gcal-client-id (plist-get creds :client-id))
+        (setq org-gcal-client-secret (plist-get creds :client-secret))
+        (message "Org-Gcal: Credentials successfully loaded from pass."))
+    (message "Org-Gcal: Credentials NOT found.")))
+
+;; 4. Load org-gcal
+(use-package org-gcal
+  :ensure t
+  :commands (org-gcal-fetch)
+  :config
+  (setq org-gcal-token-file "~/.config/emacs/.org-gcal-token")
+  ;; Replace with your specific calendar details
+(setq org-gcal-fetch-file-alist
+      '(
+        ;; 1. Your primary calendar (Keep this)
+        ("owpender@gmail.com" . "~/Nextcloud/org-gcal/schedule.org")
+
+        ;; 2. The Shared/Other Calendar (Add this)
+        ;; Format: ("CALENDAR_ID" . "PATH_TO_TARGET_FILE")
+        ("690a21d405ccefdb3dc688d3044bb18f5bdb22c1f3ad318122e1cc70cbf911c5@group.calendar.google.com" . "~/Nextcloud/org-gcal/school.org")
+        ("ef5ed25db98651afff1a11cfa33fc669358f1dbdfafaedc6232e87b9ce50826e@group.calendar.google.com" . "~/Nextcloud/org-gcal/school-group.org" )
+       )))
+#+END_SRC
+* Themes
+** Catppuccin theme
 
 Install and configure the Catppuccin Emacs theme.
 
 #+BEGIN_SRC emacs-lisp
-    (straight-use-package 'catppuccin-theme)
-    (load-theme 'catppuccin :no-confirm)
-    (setq catppuccin-flavor 'frappe) ;; or 'latte, 'macchiato, or 'mocha
-    (catppuccin-reload)
+      (use-package catppuccin-theme 
+        :straight t)
+      (setq catppuccin-flavor 'frappe) ;; or 'latte, 'macchiato, or 'mocha
+      (catppuccin-reload)
 
-    (defun ctp/text-org-blocks ()
-     (face-remap-add-relative 'org-block (list :foreground (catppuccin-get-color 'text))))
+  (setq org-src-fontify-natively t)
+  (add-to-list 'org-src-block-faces (list "" (list :foreground (catppuccin-get-color 'green))))
 
+  (defun ctp/text-org-blocks ()
+    (face-remap-add-relative 'org-block (list :foreground (catppuccin-get-color 'text))))
   (add-hook 'org-mode-hook 'ctp/text-org-blocks)
 
 #+END_SRC
 
-* LaTeX classes
+** Canagawa theme
 
 #+BEGIN_SRC emacs-lisp
+(use-package kanagawa-themes
+  :straight t
+  :ensure t)
+#+END_SRC
+** timu-spacegrey-theme
+
+#+BEGIN_SRC emacs-lisp
+(use-package timu-spacegrey-theme
+  :straight t
+  :ensure t
+  :config)
+#+END_SRC
+
+** Zenburn theme
+
+#+BEGIN_SRC emacs-lisp
+(use-package zenburn-theme
+  :straight t)
+
+#+END_SRC
+
+* Loading a theme
+
+#+BEGIN_SRC emacs-lisp
+;;(load-theme 'catppuccin t)
+(load-theme 'kanagawa-wave t)
+;;(load-theme 'timu-spacegrey t)
+;;(load-theme 'zenburn t)
+#+END_SRC
+
+* LaTeX classes
+** Seminar Work
+#+BEGIN_SRC emacs-lisp
+(with-eval-after-load 'ox-latex
+  (setq org-latex-pdf-process
+        '("pdflatex -interaction=nonstopmode -output-directory %o %f"
+          "bibtex %b"
+          "pdflatex -interaction=nonstopmode -output-directory %o %f"
+          "pdflatex -interaction=nonstopmode -output-directory %o %f")))
+(setq org-latex-tables-booktabs t)
 (require 'ox-latex)
 
 (add-to-list 'org-latex-classes
@@ -323,5 +478,26 @@ Install and configure the Catppuccin Emacs theme.
                ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
                ("\\paragraph{%s}" . "\\paragraph*{%s}")
                ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+#+END_SRC
 
+** Math Notes
+
+#+BEGIN_SRC emacs-lisp
+(require 'ox-latex)
+
+(add-to-list 'org-latex-classes
+             '("mathnotes"
+               "\\documentclass{mathnotes}
+[NO-DEFAULT-PACKAGES]
+\\usepackage{longtable}
+\\usepackage{wrapfig}
+\\usepackage{rotating}
+\\usepackage[normalem]{ulem}
+\\usepackage{capt-of}
+[EXTRA]"
+               ("\\section{%s}" . "\\section*{%s}")
+               ("\\subsection{%s}" . "\\subsection*{%s}")
+               ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+               ("\\paragraph{%s}" . "\\paragraph*{%s}")
+               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
 #+END_SRC
