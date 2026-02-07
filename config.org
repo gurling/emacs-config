@@ -288,12 +288,15 @@ Install and configure Evil Mode (Vim emulation for Emacs)
 ** Org Agenda
 
 #+BEGIN_SRC emacs-lisp
-(setq org-agenda-files
-      '(
-        "~/Nextcloud/org-gcal/schedule.org"    ;; My main Google Calendar file
-        "~/Nextcloud/org-gcal/school.org"   ;; My school class calendar (whole class)
-        "~/Nextcloud/org-gcal/school-group.org"   ;; My school class calendar (my group)
-       ))
+  (setq org-agenda-files
+        '(
+          ;;"~/org/routine.org"
+          "~/org" ;; Local org-agenda files
+          "~/Nextcloud/org" ;; Remote org-agenda files
+          "~/Nextcloud/org-gcal/schedule.org"    ;; My main Google Calendar file
+          "~/Nextcloud/org-gcal/school.org"   ;; My school class calendar (whole class)
+          "~/Nextcloud/org-gcal/school-group.org"   ;; My school class calendar (my group)
+         ))
 
 #+END_SRC
 
