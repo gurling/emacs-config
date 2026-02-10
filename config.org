@@ -20,6 +20,7 @@ My personal Emacs config
   - [[#beacon-mode][Beacon mode]]
 - [[#org-mode][Org Mode]]
   - [[#org-agenda][Org Agenda]]
+  - [[#org-capture-templates][Org Capture templates]]
   - [[#table-of-contents][Table Of Contents]]
   - [[#org-bullets][Org Bullets]]
   - [[#disable-electric-indent-mode][Disable Electric Indent mode]]
@@ -35,6 +36,7 @@ My personal Emacs config
 - [[#latex-classes][LaTeX classes]]
   - [[#seminar-work][Seminar Work]]
   - [[#math-notes][Math Notes]]
+- [[#custom-functions][Custom functions]]
 
 * Important Programs to load first
 ** Evil Mode
@@ -292,12 +294,36 @@ Install and configure Evil Mode (Vim emulation for Emacs)
         '(
           ;;"~/org/routine.org"
           "~/org" ;; Local org-agenda files
-          "~/Nextcloud/org" ;; Remote org-agenda files
+          ;; "~/Nextcloud/org" ;; Remote org-agenda files
           "~/Nextcloud/org-gcal/schedule.org"    ;; My main Google Calendar file
           "~/Nextcloud/org-gcal/school.org"   ;; My school class calendar (whole class)
-          "~/Nextcloud/org-gcal/school-group.org"   ;; My school class calendar (my group)
+          ;;"~/Nextcloud/org-gcal/school-group.org"   ;; My school class calendar (my group)
          ))
 
+#+END_SRC
+
+** Org Capture templates
+
+#+BEGIN_SRC emacs-lisp
+  ;;  (require 'org-capture)
+
+  ;; (defvar ma-notes-dir (expand-file-name "~/Nextcloud/SPSSOL/2025-2026/MA/"))
+
+  ;; (defun ma--capture-file ()
+  ;;   (make-directory ma-notes-dir t)
+  ;;   (expand-file-name (format-time-string "%d-%m-%Y.org") ma-notes-dir))
+
+  ;; (add-to-list 'org-capture-templates
+  ;;              '("m" "math note (today)" plain
+  ;;                (file ma--capture-file)
+  ;;                "#+TITLE: MA %<%d-%m-%Y>\n
+  ;;                 #+DATE: %<%d-%m-%Y>\n
+  ;;                 #+AUTHOR: AverageArchLinuxUser\n
+  ;;                 #+LANGUAGE: cs\n
+  ;;                 #+LATEX_CLASS: mathnotes\n
+  ;;                 #+OPTIONS: toc:t num:t\n%?"
+  ;;                :empty-lines 1))
+   
 #+END_SRC
 
 ** Table Of Contents
@@ -486,21 +512,83 @@ Install and configure the Catppuccin Emacs theme.
 ** Math Notes
 
 #+BEGIN_SRC emacs-lisp
-(require 'ox-latex)
+  ;; (require 'ox-latex)
 
-(add-to-list 'org-latex-classes
-             '("mathnotes"
-               "\\documentclass{mathnotes}
-[NO-DEFAULT-PACKAGES]
-\\usepackage{longtable}
-\\usepackage{wrapfig}
-\\usepackage{rotating}
-\\usepackage[normalem]{ulem}
-\\usepackage{capt-of}
+  ;; (add-to-list 'org-latex-classes
+  ;;              '("mathnotes"
+  ;;                "\\documentclass{mathnotes}
+  ;; [NO-DEFAULT-PACKAGES]
+  ;; \\usepackage{longtable}
+  ;; \\usepackage{wrapfig}
+  ;; \\usepackage{rotating}
+  ;; \\usepackage[normalem]{ulem}
+  ;; \\usepackage{capt-of}
+  ;; [EXTRA]"
+  ;;                ("\\section{%s}" . "\\section*{%s}")
+  ;;                ("\\subsection{%s}" . "\\subsection*{%s}")
+  ;;                ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+  ;;                ("\\paragraph{%s}" . "\\paragraph*{%s}")
+  ;;                ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+
+(with-eval-after-load 'ox-latex
+  (add-to-list 'org-latex-classes
+               '("mathnotes"
+                 "\\documentclass{mathnotes}
+[DEFAULT-PACKAGES]
+[PACKAGES]
+\\usepackage{mathtools}
+\\usepackage{amssymb}
 [EXTRA]"
-               ("\\section{%s}" . "\\section*{%s}")
-               ("\\subsection{%s}" . "\\subsection*{%s}")
-               ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-               ("\\paragraph{%s}" . "\\paragraph*{%s}")
-               ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+                 ("\\section{%s}" . "\\section*{%s}")
+                 ("\\subsection{%s}" . "\\subsection*{%s}")
+                 ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                 ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                 ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+
+#+END_SRC
+* Custom functions
+
+#+BEGIN_SRC emacs-lisp
+;;; --- math notes: create daily file with template ---
+
+(defvar ma-notes-dir (expand-file-name "~/Nextcloud/SPSSOL/2025-2026/MA/")
+  "Directory for math notes.")
+
+(defun ma--today-stamp ()
+  "Return date as DD-MM-YYYY."
+  (format-time-string "%d-%m-%Y"))
+
+(defun ma--note-path (&optional date-stamp)
+  "Return full path for DATE-STAMP (DD-MM-YYYY). Defaults to today."
+  (let ((ds (or date-stamp (ma--today-stamp))))
+    (expand-file-name (concat ds ".org") ma-notes-dir)))
+
+(defun ma--insert-template (date-stamp)
+  "Insert the standard MA org header."
+  (insert
+   (format "#+TITLE: MA %s\n" date-stamp)
+   (format "#+DATE: %s\n" date-stamp)
+   (format "#+AUTHOR: %s\n" (or user-full-name ""))
+   "#+LANGUAGE: cs\n"
+   "#+LATEX_CLASS: mathnotes\n"
+   "#+OPTIONS: toc:t num:t\n\n"))
+
+(defun ma-new-note (&optional date-stamp)
+  "Create/open an MA note for DATE-STAMP (DD-MM-YYYY). With prefix arg, prompt."
+  (interactive
+   (list (when current-prefix-arg
+           (read-string "Date (DD-MM-YYYY): " (ma--today-stamp)))))
+  (let* ((ds (or date-stamp (ma--today-stamp)))
+         (path (ma--note-path ds)))
+    (make-directory ma-notes-dir t)
+    (find-file path)
+    (when (= (buffer-size) 0)
+      (org-mode)
+      (ma--insert-template ds)
+      (save-buffer))))
+
+;; keybind (pick whatever you like)
+(global-set-key (kbd "C-c m n") #'ma-new-note)
+
+
 #+END_SRC
