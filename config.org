@@ -512,33 +512,169 @@ Install and configure the Catppuccin Emacs theme.
 ** Math Notes
 
 #+BEGIN_SRC emacs-lisp
-  ;; (require 'ox-latex)
+;; Ensure the directory exists before tangling
+(make-directory (expand-file-name "~/texmf/tex/latex/mathnotes/") t)
+#+END_SRC
 
-  ;; (add-to-list 'org-latex-classes
-  ;;              '("mathnotes"
-  ;;                "\\documentclass{mathnotes}
-  ;; [NO-DEFAULT-PACKAGES]
-  ;; \\usepackage{longtable}
-  ;; \\usepackage{wrapfig}
-  ;; \\usepackage{rotating}
-  ;; \\usepackage[normalem]{ulem}
-  ;; \\usepackage{capt-of}
-  ;; [EXTRA]"
-  ;;                ("\\section{%s}" . "\\section*{%s}")
-  ;;                ("\\subsection{%s}" . "\\subsection*{%s}")
-  ;;                ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-  ;;                ("\\paragraph{%s}" . "\\paragraph*{%s}")
-  ;;                ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
+#+BEGIN_SRC latex :tangle ~/texmf/tex/latex/mathnotes/mathnotes.cls
+%% mathnotes.cls -- clean pdflatex class for math notes
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesClass{mathnotes}[Math Notes]
 
+% Base class
+\LoadClassWithOptions{article}
+
+% --------------------
+% Encoding + fonts (pdflatex)
+% --------------------
+\RequirePackage[T1]{fontenc}
+\RequirePackage[utf8]{inputenc}
+\RequirePackage{lmodern}
+\RequirePackage{microtype}
+
+% --------------------
+% Page layout
+% --------------------
+\RequirePackage{geometry}
+\geometry{margin=25mm}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\raggedbottom
+
+% --------------------
+% Math
+% --------------------
+\RequirePackage{mathtools} % loads amsmath
+\RequirePackage{amssymb}
+\RequirePackage{amsthm}
+\RequirePackage{bm}
+\RequirePackage{cancel}
+
+\allowdisplaybreaks[2]
+\mathtoolsset{showonlyrefs} % eq numbers only if referenced via \ref
+
+% Slightly tighter displayed-math spacing (nice for algebra steps)
+\AtBeginDocument{%
+  \setlength{\abovedisplayskip}{8pt plus 2pt minus 2pt}%
+  \setlength{\belowdisplayskip}{8pt plus 2pt minus 2pt}%
+  \setlength{\abovedisplayshortskip}{6pt plus 2pt minus 2pt}%
+  \setlength{\belowdisplayshortskip}{6pt plus 2pt minus 2pt}%
+}
+
+% Handy paired delimiters (use \abs{x} or \abs*{x} for auto sizing)
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+
+% Boxed final answer macro
+\newcommand{\final}[1]{\boxed{\displaystyle #1}}
+
+% Optional common sets (comment out if you don’t want them)
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\CC}{\mathbb{C}}
+
+% --------------------
+% Units / numbers
+% --------------------
+\RequirePackage{siunitx}
+\sisetup{detect-all, per-mode=symbol}
+
+% --------------------
+% Lists / tables / figures
+% --------------------
+\RequirePackage{enumitem}
+\setlist{nosep}
+\setlist[enumerate]{label=\textbf{\arabic*.}, leftmargin=*}
+
+\RequirePackage{booktabs}
+\RequirePackage{longtable}
+\RequirePackage{graphicx}
+
+% --------------------
+% Links (Org-safe)
+% --------------------
+\RequirePackage{xcolor}
+
+\makeatletter
+% Avoid "Option clash" if hyperref is already loaded (e.g., by Org export)
+\@ifpackageloaded{hyperref}{}{%
+  \RequirePackage[hidelinks]{hyperref}%
+}
+\makeatother
+
+% --------------------
+% Headings + header/footer
+% --------------------
+\RequirePackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.6em}{}
+
+\RequirePackage{fancyhdr}
+
+\makeatletter
+% Ensure \leftmark updates nicely in article
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\ #1}{}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\AtBeginDocument{%
+  \fancyhf{}%
+  \lhead{\small\nouppercase{\@title}}%
+  \rhead{\small\nouppercase{\leftmark}}%
+  \cfoot{\thepage}%
+}
+\makeatother
+
+% --------------------
+% Theorem environments
+% --------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{note}[theorem]{Note}
+
+% --------------------
+% Title
+% --------------------
+\makeatletter
+\renewcommand{\maketitle}{%
+  \thispagestyle{empty}%
+  \begin{center}
+    {\LARGE\bfseries \@title \par}
+    \vspace{0.6em}
+  \end{center}
+  \vspace{0.3em}
+  \hrule
+  \vspace{1.0em}
+}
+\makeatother
+
+% End
+\endinput
+
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
 (with-eval-after-load 'ox-latex
   (add-to-list 'org-latex-classes
                '("mathnotes"
-                 "\\documentclass{mathnotes}
-[DEFAULT-PACKAGES]
-[PACKAGES]
-\\usepackage{mathtools}
-\\usepackage{amssymb}
-[EXTRA]"
+                 "\\documentclass{mathnotes}"
                  ("\\section{%s}" . "\\section*{%s}")
                  ("\\subsection{%s}" . "\\subsection*{%s}")
                  ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
@@ -568,10 +704,11 @@ Install and configure the Catppuccin Emacs theme.
   (insert
    (format "#+TITLE: MA %s\n" date-stamp)
    (format "#+DATE: %s\n" date-stamp)
-   (format "#+AUTHOR: %s\n" (or user-full-name ""))
+   ;;(format "#+AUTHOR: %s\n" (or user-full-name ""))
+  )
    "#+LANGUAGE: cs\n"
    "#+LATEX_CLASS: mathnotes\n"
-   "#+OPTIONS: toc:t num:t\n\n"))
+   "#+OPTIONS: toc:nil num:nil\n\n"))
 
 (defun ma-new-note (&optional date-stamp)
   "Create/open an MA note for DATE-STAMP (DD-MM-YYYY). With prefix arg, prompt."
@@ -584,10 +721,9 @@ Install and configure the Catppuccin Emacs theme.
     (find-file path)
     (when (= (buffer-size) 0)
       (org-mode)
-      (ma--insert-template ds)
-      (save-buffer))))
+      (ma--insert-template ds))))
 
-;; keybind (pick whatever you like)
+;; keybind
 (global-set-key (kbd "C-c m n") #'ma-new-note)
 
 
